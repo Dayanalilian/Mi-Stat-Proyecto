@@ -1,0 +1,252 @@
+---
+title: "practica_calificada_01_grupo_01"
+format: html
+editor: visual
+---
+
+## GRUPO 01, PC1
+
+ALEXANDRA PAMELA DEGREGORI HINOJOSA
+
+DAYANA LILIAN MARROQUIN TICONA
+
+EVELYN LIZBETH QUISPE VALENCIA
+
+LEIDY YOJHANA LOAYZA QUISPE
+
+MAYRHA NAYHELY CAYLLAHUA HUARANCCA
+
+```{r}
+install.packages("gtsummary")
+install.packages("finalfit")
+install.packages("flextable")
+```
+
+```{r}
+library(tidyverse)
+library(here)
+library(rio)
+library(gtsummary) ## Para la "Tabla 1"
+library(finalfit)
+library(flextable)
+```
+
+```{r}
+data_almac_sangre <- import(here("data", "almac_sangre.csv"))
+```
+
+## 
+
+### La "estructura" de los datos
+
+```{r}
+str(data_almac_sangre)
+```
+
+.1.1 RESUMEN DE DATOS
+
+```{r}
+table(data_almac_sangre$almac_sangre, useNA = "ifany")
+```
+
+```{r}
+table(data_almac_sangre$Gleason_biopsia, useNA = "ifany")
+```
+
+Con tidyverse
+
+```{r}
+data_almac_sangre |>    dplyr::count(Gleason_biopsia, sort = TRUE)
+```
+
+Valores perdidos en proporciones
+
+```{r}
+prop.table(table(data_almac_sangre$Gleason_biopsia, useNA = "ifany"))
+```
+
+# 2. Resumen de variables continuas
+
+```{r}
+mean(data_almac_sangre$PSA_preoperatorio, na.rm = TRUE)
+```
+
+```{r}
+sd(data_almac_sangre$PSA_preoperatorio, na.rm = TRUE)
+```
+
+Otras funciones que puedes encontrar útil son `min()`, `max()`, `median()` y `IQR()`
+
+```{r}
+min(data_almac_sangre$PSA_preoperatorio, na.rm = TRUE) # Proporciona el valor mínimo
+
+IQR(data_almac_sangre$PSA_preoperatorio, na.rm = TRUE) # Calcula el rango intercuartilico
+
+median(data_almac_sangre$PSA_preoperatorio, na.rm = TRUE) # Calcula la mediana
+```
+
+### La función `summary()` para calcular todas las medidas, a la vez.
+
+`summary()` es una función nativa de R que permite calcular todas las medidas estadísticas a la vez. Abajo, un ejemplo con la variable Unidades_transfundidas
+
+```{r}
+summary(data_almac_sangre$Unidades_transfundidas)
+```
+
+## ¿Mediana o media?
+
+Una de las cosas que queremos saber al realizar un análisis descriptivo es la distribución de los datos. La media y mediana puede informarnos al respecto. Abajo, un ejemplo para la variable PSA_preoperatorio
+
+```{r}
+mean(data_almac_sangre$PSA_preoperatorio, na.rm = T)
+```
+
+```{r}
+median(data_almac_sangre$PSA_preoperatorio, na.rm = T)
+```
+
+La media y mediana de la variable PSA_preoperatorio son similares. Estos sugiere que los datos tienen una distribución simétrica.
+
+Debajo otro ejemplo con la variable Tiempo_hasta_recurrencia
+
+```{r}
+mean(data_almac_sangre$Tiempo_hasta_recurrencia, na.rm = T)
+```
+
+```{r}
+median(data_almac_sangre$Tiempo_hasta_recurrencia, na.rm = T)
+```
+
+La media y mediana de la variable Volumen_prostata son diferentes. Estos sugiere que los datos tienen una distribución asimétrica.
+
+Comprobémoslo visualmente
+
+```{r}
+par(mfrow=c(1,2)) # Configuramos e número de elementos por Figura 
+hist(data_almac_sangre$PSA_preoperatorio) 
+hist(data_almac_sangre$Tiempo_hasta_recurrencia)
+```
+
+# \[resumen\] Por otra variable
+
+```{r}
+data_almac_sangre |>    group_by(Grupo_edad_GR) |>    summarise(n_observ = n(),             porcentaje = (n_observ / nrow(data_almac_sangre)*100))
+```
+
+```{r}
+data_almac_sangre |>     group_by(Raza_afroamericana) |>    summarize(promedio = mean(Unidades_transfundidas, na.rm = T))
+```
+
+Podemos hacer resumenes incluso más complejos. Por ejemplo, calcular la media de Unidades_transfundidas por estado de Volumen_prostata y categoría de `Grupo_edad_GR`. Para esto, añade la variable edad_cat a la función `group_by()`
+
+```{r}
+data_almac_sangre |>     group_by(Volumen_prostata, Grupo_edad_GR) |>    summarize(promedio = mean(Unidades_transfundidas, na.rm = T))
+```
+
+Otros estadísticos
+
+```{r}
+data_almac_sangre |>  
+  group_by(Volumen_prostata, Edad) |> 
+  summarize(promedio_PSA_preoperatorio = mean(PSA_preoperatorio, na.rm = TRUE),
+            DE = sd(PSA_preoperatorio, na.rm = TRUE),
+            max_valor_PSA_preoperatorio = max(PSA_preoperatorio, na.rm = TRUE))
+```
+
+Estadística descriptiva condicional: resumen por grupo de Volumen_prostata
+
+```{r}
+data_almac_sangre |>  
+  group_by(Edad) |> 
+  summarize(max_Unidades_transfundidas_diab = max(Unidades_transfundidas[Volumen_prostata == "Si"], na.rm = TRUE),
+            max_Unidades_transfundidas_no_diab = max(Unidades_transfundidas[Volumen_prostata == "No"], na.rm = TRUE),
+            prom_Unidades_transfundidas_diab = mean(Unidades_transfundidas[Volumen_prostata == "Si"], na.rm = TRUE),
+            prom_Unidades_transfundidas_no_diab = mean(Unidades_transfundidas[Volumen_prostata == "No"], na.rm = TRUE))
+```
+
+Percentiles del nivel de Unidades_transfundidas por grupo de edad solo en participantes con Volumen_prostata usando la función `filter()`
+
+```{r}
+data_almac_sangre |>    filter(Volumen_prostata == "Si") |>    group_by(Grupo_edad_GR) |>    summarize(p25 = quantile(Unidades_transfundidas, probs = 0.25, na.rm=T),             p50 = quantile(Unidades_transfundidas, probs = 0.50, na.rm=T),             p75 = quantile(Unidades_transfundidas, probs = 0.75, na.rm=T))
+```
+
+Usando `across()` para multiples estadísticos descriptivos para multiples variables
+
+```{r}
+data_almac_sangre |>    group_by(Volumen_prostata) |>    summarize(across(.cols = c(Unidades_transfundidas, Edad_mediana_GR,                               Tiempo_hasta_recurrencia, Edad, PSA_preoperatorio),                    .fns = list("promedio" = mean, "DE" = sd,                                 "máximo" = max),                    na.rm = TRUE))
+```
+
+```{r}
+data_almac_sangre |>    group_by(Volumen_prostata) |>    summarize(across(.cols = where(is.numeric),                    .fns = list("promedio" = mean, "DE" = sd,                                 "máximo" = max),                    na.rm = TRUE))
+```
+
+# La "Tabla 1" con gtsummary
+
+```{r}
+install.packages("finalfit") #install.packages("gtsummary")
+```
+
+```{r}
+library(gtsummary)
+```
+
+Tabla 1 básico
+
+```{r}
+data_almac_sangre |>    select(Edad, Grupo_edad_GR, PSA_preoperatorio, Unidades_transfundidas,           Tiempo_hasta_recurrencia, Grupo_edad_GR, Volumen_prostata) |>    tbl_summary()
+```
+
+```{r}
+data_almac_sangre|> 
+  select(Edad, Grupo_edad_GR, PSA_preoperatorio, Tiempo_hasta_recurrencia, 
+        , Edad_mediana_GR, Volumen_prostata, Unidades_transfundidas) |> 
+  tbl_summary(by = Volumen_prostata)
+```
+
+Pero las tablas deben ser autoexplicativas...
+
+## Configurando el estilo e idioma
+
+```{r}
+theme_gtsummary_language(language = "es") # idioma es = español theme_gtsummary_journal(journal = "jama")
+```
+
+```{r}
+data_almac_sangre |>    select(Edad, Grupo_edad_GR, PSA_preoperatorio, Unidades_transfundidas,           Tiempo_hasta_recurrencia, Grupo_edad_GR, Volumen_prostata) |>    tbl_summary(     by = Volumen_prostata   )
+```
+
+## Recodificación de variables y adición de nombres correctos a variables
+
+```{r}
+data_almac_sangre_0 = data_almac_sangre |>
+mutate(Edad = ff_label(Edad, "Edad (años)"),
+Grupo_edad_GR = as.factor(Grupo_edad_GR) |>
+fct_relevel("≤38", "41-50", "51-60", ">70") |> 
+ff_label("Grupo etario"),PSA_preoperatorio = ff_label(PSA_preoperatorio, "PSA del preoperatorio"),volumen_prostata = as.factor(Volumen_prostata) |>
+      fct_recode("Sí" = "Si",
+                 "No" = "No") |>
+      fct_relevel("Sí", "No") |> 
+      ff_label("Volumen de prostata"),
+    Tiempo_hasta_recurrencia = as_factor(Tiempo_hasta_recurrencia) |> 
+      fct_relevel("Menor (<30)", "Intermedio (30-150)", "Mayor (>150)") |>
+      ff_label("Tiempo de recurrencia "),
+    Unidades_transfundidas = ff_label(Unidades_transfundidas, "unidades transfundidas (Unt)"))
+```
+
+```{r}
+tabla_1.v1 = data_almac_sangre_0 |>select(Edad, Grupo_edad_GR, PSA_preoperatorio, Tiempo_hasta_recurrencia, Volumen_prostata, Unidades_transfundidas) |>tbl_summary(by = Volumen_prostata) 
+```
+
+Añadiendo nombre a la variable dependiente
+
+```{r}
+tabla_1.v2 = data_almac_sangre_0 |>    select(Edad, Grupo_edad_GR, PSA_preoperatorio, , Tiempo_hasta_recurrencia_cat, Volmen_prostata, Unidades_transfundidas) |>    tbl_summary(by = Volumen_prostata) |>    modify_spanning_header(all_stat_cols() ~ "**Volumen_prostata**") |>   add_overall() 
+```
+
+```{r}
+tabla_1 = data_almac_sangre_0 |>    select(Edad, Grupo_edad_GR, PSA_preoperatorio, Tiempo_hasta_recurrencia_cat, Volumen_prostata, Unidades_transfundidas) |>    tbl_summary(by = Volumen_prostata) |>    modify_spanning_header(all_stat_cols() ~ "**Almac_sangre**") |>   add_overall() |>    modify_caption("**Tabla 1**. caracteristicas_del_cancer_de_prostata")
+```
+
+`{r} install.packages("flextable") library(flextable)}`
+
+`{r} tabla_1_flex = as_flex_table(tabla_1) # Convertir a flex table save_as_docx(tabla_1_flex, path = "tabla_1_flex.docx") # Guardar tabla}`

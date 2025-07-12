@@ -1,0 +1,274 @@
+---
+title: "ACTIVIDAD03_PC2"
+format: html
+editor: visual
+---
+
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+## **Integrantes:**
+
+-   Degregori Hinojosa Alexandra
+
+-   Marroquin Ticona Dayana
+
+-   Loayza Quispe Leydi
+
+-   Quispe Valencia Evelyn
+
+-   Cayllahua Huarancca Mayrha
+
+## Cargar Paquetes
+
+```{r}
+install.packages("car") 
+```
+
+```{r}
+library(tidyverse)
+library(here)
+library(rio)
+library(gtsummary)
+library(car)
+```
+
+### Cargar los datos
+
+```{r}
+almac_sangre <- import(here("data", "almac_sangre.csv"))
+```
+
+## 1.1 Trabajemos con el dataset
+
+***Pregunta de investigación: ¿Existe una asociación entre el volumen prostático y el nivel de PSA preoperatorio?***
+
+El desenlace *Y* de interés para esta prueba es la variable PSA preoperatorio. Veamos la distribución de la variable y el promedio en en un histograma
+
+```{r}
+almac_sangre |>  
+  ggplot(aes(x = PSA_preoperatorio)) +
+  geom_histogram(
+    color = "white",
+    ) + 
+  labs(y = "Frecuencia", 
+       x = "PSA_preoperatorio") +
+  geom_vline(xintercept = mean(almac_sangre$PSA_preoperatorio, na.rm = TRUE),
+             color = "darkred", size = 1.5)
+```
+
+```{r}
+mean(almac_sangre$PSA_preoperatorio, na.rm = TRUE)
+```
+
+***A partir del histograma***: el promedio (valor esperado) muestra que existe una gran variación entre los valores de PSA preoperatorio, cuya media fue de aproximadamente 8. Esta medida sugiere que otras variables (predictores) podrían influir en los niveles de PSA, como la variable, volumen prostático.
+
+## 1.2 Notación en el método de regresión lineal simple
+
+```{r}
+plot(PSA_preoperatorio ~ Volumen_prostata , data = almac_sangre,
+     col = "gray",
+     ylab = "PSA_preoperatorio",
+     xlab = "Volumen_prostata",
+     las = 1,
+     pch = 20, 
+     font.lab = 2, font.axis = 2) 
+
+abline(lm(PSA_preoperatorio ~ Volumen_prostata , data = almac_sangre), lwd = 2, col = "darkred")
+```
+
+**Ajuste del modelo de regresión lineal:** En nuestro caso el intercepto (β₀) representa el *valor esperado* de PSA preoperatorio cuando el volumen prostático es cero. Sin embargo, este valor no tiene un valor clínico , pero es necesario desde el punto de vista matemático.
+
+La pendiente (β₁) nos da un indicio de cuánto aumenta (o disminuye) en promedio el PSA preoperatorio por cada unidad adicional de volumen prostático. Este coeficiente nos permite evaluar si existe una asociación lineal entre ambas variables.
+
+```{r}
+aplicacion_nuestra_data = lm(PSA_preoperatorio ~ Volumen_prostata, data = almac_sangre)
+```
+
+**Visualicemos en summary**
+
+```{r}
+summary(aplicacion_nuestra_data)
+```
+
+## **1.4 Interpretación de resultados**
+
+```{r}
+summary(aplicacion_nuestra_data)$coef
+```
+
+**Análisis de resultados:** Con respecto al modelo que mejor se ajusta a nuestros datos tiene un *intercepto de 5.725* y una *pendiente de 0.045*.
+
+En nuestro modelo, el valor *p* del predictor *(Volumen_prostata)* prueba la hipótesis nula de que el *PSA preoperatorio* no tiene asociación con el volumen prostático, o dicho de otra manera, que la pendiente es igual a cero.
+
+La hipótesis nula plantea que la línea de mejor ajuste es una línea horizontal, lo que indicaría que el promedio esperado del PSA es el mismo para todos los valores de volumen prostático. Sin embargo, dado que el valor *p* del predictor es muy bajo *(p = 7.04e-05)*, rechazamos la hipótesis nula, concluyendo que sí existe evidencia estadísticamente significativa de una asociación lineal entre el volumen prostático y el PSA preoperatorio.
+
+Además el valor *R-cuadrado (0.051)* , nos indica que aproximadamente *el 5.1% de la variación del PSA preoperatorio* puede ser explicada por el volumen prostático. Por otra parte, el modelo es estadísticamente significativo, la capacidad explicativa es baja, lo que nos hace plantearnos que *otros factores también influyen en los niveles de PSA.*
+
+## 1.5 Reporte de resultados
+
+Haciendo uso de un modelo de regresión lineal simple, para evaluar la relación entre el nivel de PSA preoperatorio (ng/mL) y el volumen prostático (cm³), utilizando datos de 316 individuos. El 5.08% de la variación en los niveles de PSA preoperatorio fue explicada por el volumen prostático (R² = 0.0509). Se encontró una asociación positiva estadísticamente significativa entre el volumen prostático y el PSA preoperatorio (B = 0.045; *p* \< .001). En promedio, por cada aumento de 1 cm³ en el volumen prostático, el PSA preoperatorio aumenta en 0.045 ng/mL.
+
+```{r}
+theme_gtsummary_language("es")
+
+tabla_reporte <- aplicacion_nuestra_data |> 
+  tbl_regression(intercept = T,
+                 estimate_fun = function(x) style_sigfig(x, digits = 4),
+                 pvalue_fun   = function(x) style_pvalue(x, digits = 3),
+                 label        = list(Volumen_prostata ~ "Volumen de prostata (cm3)")) |>
+  modify_caption("Regresión de PSA preoperatorio en función del volumen de prostata")
+
+tabla_reporte
+```
+
+```{r}
+tabla_reporte |> 
+  as_flex_table()  |> 
+  flextable::save_as_docx(path = "tabla_reporte.docx")
+```
+
+## **2. Prueba t de Student para muestras independientes**
+
+El dataset almac_sangre , de 316 personas adultas (\>=38.4 años de edad), contiene datos volumen de próstata, la variable raza afroamericana y otros datos demográficos.
+
+## 2.3 Resumen y visualización
+
+```{r}
+group_by(almac_sangre, Raza_afroamericana) |> 
+  summarise(
+    count = n(),
+    mean = mean(Tiempo_hasta_recurrencia, na.rm = TRUE),
+    sd = sd(Tiempo_hasta_recurrencia, na.rm = TRUE)
+  )
+```
+
+```{r}
+almac_sangre |>  
+  filter(!is.na(Raza_afroamericana)& !is.na(Tiempo_hasta_recurrencia))  |> 
+  ggplot(aes(y = Tiempo_hasta_recurrencia, x = Raza_afroamericana)) +
+  geom_boxplot() +
+  labs(y = "Tiempo hasta recurrencia)", x = "Raza afroamericana")
+```
+
+### 2.4 Pruebas preliminares para evaluar los supuestos de la prueba t de Student
+
+**Hipotesis 1:** los datos siguen una distribución normal.
+
+**Hipotesis 2:** Los datos no siguen una distribución normal.
+
+```{r}
+almac_sangre |> 
+  filter(Raza_afroamericana == "Sí") |> 
+  summarise(shapiro = list(shapiro.test(Tiempo_hasta_recurrencia))) |> 
+  pull(shapiro)
+```
+
+```{r}
+almac_sangre |> 
+  filter(Raza_afroamericana == "No") |> 
+  summarise(shapiro = list(shapiro.test(Tiempo_hasta_recurrencia))) |> 
+  pull(shapiro)
+```
+
+**Conclusión:** Al realizar la prueba de normalidad de Shapiro-Wilk para la variable "Tiempo hasta recurrencia", en el grupo de individuos identificados como afroamericanos y en el grupo no afroamericano. En ambos casos, se obtuvieron valores de p significativamente menores a 0.05 (p = 1.14e-05 y p = 2.38e-11, respectivamente), por lo que se rechaza la hipotesis nula, y se concluye que los datos no siguen una distribución normal.
+
+```         
+```
+
+## 2.5 Realizamos la prueba t para nuestros datos.
+
+```{r}
+t.test(Tiempo_hasta_recurrencia ~ Raza_afroamericana, data = almac_sangre, var.equal = TRUE)
+```
+
+I**nterpretación de resultados:** El valor p de la prueba t fue de 0.2706, lo cual es mayor que el nivel de significancia α = 0.05. Por lo tanto, podemos concluir que el tiempo de recurrencia en (Sí) afroamericanos NO es significativamente diferente al tiempo de recurrencia promedio en (No) afroamericanos.
+
+# 3 Análisis de Varianza (ANOVA)
+
+## 3.2 Sobre los datos
+
+El dataset almac_sangre, de 316 personas adultas (\>=38.4 años de edad), contiene datos de unidades transfunidas, la variable terapia previa y otros datos demográficos.
+
+## 3.3 Resumen y visualización
+
+Resumen
+
+```{r}
+group_by(almac_sangre, Terapia_previa) |> 
+  summarise(
+    count = n(),
+    mean = mean(Unidades_transfundidas, na.rm = TRUE),
+    sd = sd(Unidades_transfundidas, na.rm = TRUE),
+    min = min(Unidades_transfundidas, na.rm = TRUE),
+    max = max(Unidades_transfundidas, na.rm = TRUE)
+  )
+```
+
+#### Visualización
+
+```{r}
+almac_sangre |>  
+  filter(!is.na(Terapia_previa)& !is.na(Unidades_transfundidas))  |> 
+  ggplot(aes(y = Unidades_transfundidas, x = Terapia_previa)) +
+  geom_boxplot() +
+  labs(y = "Unidades transfundidas", x = "Terapia previa")
+```
+
+## 3.4 Pruebas preliminares para evaluar los supuestos del ANOVA
+
+**Hipotesis 1:** los datos siguen una distribución normal.
+
+**Hipotesis 2:** Los datos no siguen una distribución normal.
+
+```{r}
+almac_sangre<- almac_sangre |>
+    mutate(Terapia_previa = as.factor(Terapia_previa))
+```
+
+*Prueba de Shapiro Wilk*
+
+```{r}
+almac_sangre |> 
+  filter(Terapia_previa == "Sí") |> 
+  summarise(shapiro = list(shapiro.test(Unidades_transfundidas))) |> 
+  pull(shapiro)
+```
+
+```{r}
+almac_sangre |> 
+  filter(Terapia_previa == "No") |> 
+  summarise(shapiro = list(shapiro.test(Unidades_transfundidas))) |> 
+  pull(shapiro)
+```
+
+***Resultado:*** Dado que la varianza de los datos, en es son menor a 0.05, se rechaza la hipótesis nula de normalidad. Por lo tanto, se concluye que los datos no siguen una distribución normal en ninguno de los grupos estudiados. Sin embargo, aplicaremos la prueba de Levene:
+
+```{r}
+leveneTest(Unidades_transfundidas ~ Terapia_previa, data = almac_sangre)
+```
+
+***Resultados:*** Aplicada la prueba, obtuvimos que el valor p = 0.7992, el cual es mayor que el nivel de significancia α = 0.05. Por tanto se asume que, no hay una diferencia significativa entre las varianzas de los dos grupos (con y sin terapia previa).
+
+## 3.5 Realizamos la prueba de ANOVA de una vía para nuestros datos.
+
+```{r}
+res_anova = aov(Unidades_transfundidas ~ Terapia_previa, data = almac_sangre)
+```
+
+```{r}
+summary(res_anova)
+```
+
+**Interpretación de resultados:** El valor p es mayor que 0.05, por lo cual se concluye que no existen diferencias significativas entre los grupos con respecto a las unidades transfundidas. Dicho esto, l variable : terapia previa no tiene un efecto significativo sobre la cantidad de unidades transfundidas.
+
+**Proseguimos a realizar la prueba de Tukey HSD**
+
+```{r}
+TukeyHSD(res_anova)
+```
+
+### Conclusión de resultados:
+
+Con un valor p adj = 0.904 siendo un valor mayor a 0.05, se concluye y apoya las pruebas de Anova, con el supuesto de que no existen diferencias significativas entre los grupos.

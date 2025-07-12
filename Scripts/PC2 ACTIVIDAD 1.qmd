@@ -1,0 +1,44 @@
+---
+title: "PC2 ACTIVIDAD 01"
+format: html
+editor: visual
+---
+
+## Integrantes
+
+Cayllahua Huarancca Mayrha
+
+°Degregori Hinojosa Alexandra
+
+°Loayza Quispe Leidy
+
+°Marroquin Ticona Dayana
+
+°Quispe Valencia Evelyn
+
+## *Instalación y carga de paquete*
+
+```{r}
+install.packages("epiR")
+```
+
+```{r}
+library(epiR)
+```
+
+## *Cálculo de muestra para un estudio de prevalencia (survey)*
+
+Utilizamos la función `episssimpleestb()`: Sample size to estimate a binary outcome using simple random sampling
+
+***Caso:*** Se realizó una investigación en la cual se desea determinar la prevalencia de diabetes tipo 2 en adultos residentes de comunidades andinas del Ecuador. Para ello, se planeó realizar un estudio transversal en personas adultas de 35 a 70 años de edad. Un estudio previo, realizado en el año 2018 como parte de la cohorte PURE, evaluó a 1997 adultos y encontró que la prevalencia de diabetes fue de 10% en mujeres y 9% en varones, valores de los cuales asumimos una prevalencia esperada Py de (9.5%) , obtenida como el promedio ponderado de los valores, para ambos sexos para evitar sesgos de género y lograr una distribución equitativa de ambos, en la muestra .(<https://doi.org/10.1371/journal.pone.0254812>).
+
+¿Cuál sería el tamaño de muestra necesario?
+
+```{r}
+epi.sssimpleestb(
+  N = NA, Py = 0.095,  epsilon = 0.20,  error = "relative",   se = 1,                sp = 1,   nfractional = FALSE, conf.level = 0.95 )
+```
+
+***Resultado:*** Es necesario un tamaño de muestra de 915 participantes.
+
+***CONCLUSIONES:** Según el caso propuesto,* para estimar la prevalencia de diabetes tipo 2 en comunidades andinas del Ecuador con una prevalencia esperada de 9.5%, un nivel de confianza del 95% y un margen de error relativo del 20%, se requiere un tamaño mínimo de muestra de 915 adultos. Esta estimación permite obtener resultados sin sobredimensionar la muestra, para optimizar el uso de recursos y el tiempo de recolección de datos.

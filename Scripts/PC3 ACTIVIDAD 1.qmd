@@ -1,0 +1,324 @@
+---
+title: "SEMANA 11 G1"
+format: html
+editor: visual
+---
+
+Integrantes
+
+Dayana Lilian Marroquín Ticona
+
+Alexandra Pamela Degregori Hinojosa
+
+Cayllahua Huarancca Mayrha
+
+Leidy Yojhana Loayza Quispe.
+
+Evelyn Lizbeth Quispe Valencia
+
+### Instalar (si es necesario)
+
+```{r}
+install.packages("broom")
+install.packages("survival")
+install.packages("survminer")
+install.packages("ggsurvfit")
+```
+
+### Cargar paquetes
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(survival)
+library(survminer)
+library(gtsummary)
+library(broom)
+library(here)
+library(rio)
+library(ggsurvfit)
+```
+
+# 1 Analizando datos de tiempo a evento
+
+El análisis de supervivencia, tambien conocido como análisis de tiempo a evento, es empleado para estudios donde el o los investigadores realizan un seguimiento (a los pacientes) hasta que ocurra un evento. Ejemplo de tales estudios caen en la categoría de estudios de cohorte prospectivo o retrospectivo.
+
+El evento, en estudios de epidemiología, puede corresponder a muerte despues de diagnóstico, recurrencia de enfermedad, éxito de tratamiento, entre otros.
+
+El análisis de supervivencia incluye datos de tiempo (dado que se hace seguimiento). Los datos de tiempo puede venir en cualquier forma: horas, días, meses, o años. Por ejemplo, meses hasta la recaída, años desde el diagnóstico hasta el fallecimiento, semanas antes de la recurrencia de la enfermedad, días desde el inicio del tratamiento al exito del tratamiento, años hasta el inicio de abuso de sustancias.
+
+En esta sesión abordaremos 2 de las principales técnicas para realizar análisis de supervivencia:
+
+-   Análisis de supervivencia usando el método de Kaplan-Meier
+-   Regresión de riesgos proporcionales (PH) de Cox
+
+## 1.1 Censura
+
+Una característica clave en datos de supervivencia es la censura para un participante (una observación). La censura de un participante puede ocurrir por al menos 3 razones: 1) Perdida de seguimiento 2) Retiro del estudio 3) El evento no ocurre al término del periodo de estudio. Todos estos son ejemplos de "censura a la derecha", dado que ocurren luego del incio del estudio. Hay otros tipos de censura, menos frecuentes, pero estos no los consideraremos para esta sesión.
+
+# 2 Estimaciones de supervivencia usando el método de Kaplan-Meier
+
+## 2.1 El dataset para este ejercicio
+
+El dataset sangre contiene datos de 316 individuos. Para el primer ejecicio haremos uso de las siguientes 3 variables:
+
+-   tiempo de recurrencia
+-   evento el cual sera la recurrencia bioquimica
+-   Grupo edad
+
+Primero subiremos la data que usaremos
+
+```{r}
+data_sangre <- import(here("data", "almac_sangre.csv"))
+```
+
+Ahora promediaremos los el tiempo de recurrencia por que se encuentra con decimales y para que el trabajo este mas comodo lo redondeamos a entero
+
+```{r}
+data_sangre$Tiempo_hasta_recurrencia <- round(data_sangre$Tiempo_hasta_recurrencia, 0)
+```
+
+Luego usamos la variable recurrencia bioquimica en codigo numerico para poder trabajar el proyecto con mayor facilidad
+
+```{r}
+data_sangre$evento <- ifelse(data_sangre$Recurrencia_bioquimica == "Sí", 1, 0)
+```
+
+Hacemos un resumen de las variables que usaremos
+
+```{r}
+data_sangre |> 
+  select(Tiempo_hasta_recurrencia, evento, Grupo_edad_GR) |> 
+  summary()
+```
+
+Base de 316 pacientes.
+
+Tiempo de seguimiento variable (de 0 a 104).
+
+Mediana de seguimiento = 25.
+
+Solo 17% de eventos (recurrencia).
+
+## 2.2 El desenlace en el análisis de supervivencia
+
+Kaplan-Meier estima la probabilidad de supervivencia para distintos puntos de tiempo. En R, usamos la función `Surv()` para crear la variable "respuesta" o desenlace. Este tipo de desenlace incluye a su vez estado del participante (con el evento o sin el evento) y tiempo.
+
+```{r}
+Surv(data_sangre$Tiempo_hasta_recurrencia, data_sangre$evento)
+```
+
+El resultado en este chunk indica el estado (desenlace) de los participantes. El participante 1 sobrevivió 3 y tuvo el evento . El participante 2 sobrevivió 48 y tuvo el evento. El parcipante 3 fue censurado al día 14
+
+La variable "respuesta" la incluimos en la función survfit para estimar la probabilidad de supervivencia (una curva) usando el método de Kaplan-Meier. Aquí estimados la curva de superviencia global sin considerar ningun predictor. Es por ello que añadimos "\~ 1" a la formula. Esa parte será reemplazada más adelante por algun predictor o covariable de interés.
+
+```{r}
+km = survfit(Surv(Tiempo_hasta_recurrencia, evento) ~ 1, data = data_sangre)
+```
+
+¿Qué hay dentro del objeto km?
+
+```{r}
+str(km)
+```
+
+Se realizó un análisis de supervivencia tipo Kaplan-Meier con 315 pacientes. A lo largo de 88 tiempos distintos de seguimiento, se registraron los eventos (recurrencias) y las censuras (pacientes sin recurrencia al finalizar su seguimiento). La probabilidad de no presentar recurrencia (supervivencia) comienza cercana a 1 y va disminuyendo a medida que ocurren los eventos. Se calcularon intervalos de confianza del 95% para cada estimación de supervivencia. Además, se estimó el riesgo acumulado de recurrencia a lo largo del tiempo. El análisis incluyó el manejo correcto de los datos censurados y omitió automáticamente los datos faltantes.
+
+## 2.3 Gráficos de Kaplan-Meier
+
+La información contenida en el objeto creado con las estimaciones puede ser mejor visualizada en los gráficos de Kaplan-Meier.
+
+```{r}
+survfit2(Surv(Tiempo_hasta_recurrencia, evento) ~ 1, data = data_sangre) |>
+  ggsurvfit() +
+  labs(
+    x = "Meses de seguimiento",
+    y = "Probabilidad de no presentar recurrencia"
+  ) +
+  add_censor_mark()
+```
+
+La curva muestra que al inicio todos los pacientes estaban libres de recurrencia. A medida que pasa el tiempo, algunos pacientes presentan recurrencia y la probabilidad de estar libre de ella va bajando. La mayoría de las recurrencias ocurren dentro de los primeros 75 meses. Después de ese tiempo, la curva casi no desciende, lo que indica que pocos pacientes tienen recurrencia más allá de ese período. Los signos “+” indican pacientes que fueron censurados, es decir, no presentaron recurrencia durante el seguimiento.
+
+La función `add_confidence_interval()` añade los intervalos de confianza al 95% (sombreado en gris) para las estimaciones de probabilidad de supervivencia.
+
+```{r}
+survfit2(Surv(Tiempo_hasta_recurrencia, evento) ~ 1, data = data_sangre) |>
+  ggsurvfit() +
+  labs(
+    x = "Meses de seguimiento",
+    y = "Probabilidad de no presentar recurrencia"
+  ) +
+  add_censor_mark() + 
+  add_confidence_interval() + 
+  add_risktable()
+```
+
+Se observa la curva de supervivencia de Kaplan-Meier que muestra la probabilidad de no presentar recurrencia bioquímica a lo largo del tiempo. Al inicio, la probabilidad es cercana a 1, lo que indica que todos los pacientes comienzan sin recurrencia. A medida que transcurren los meses de seguimiento, esta probabilidad va disminuyendo de forma progresiva debido a la aparición de recurrencias. Hacia los 75 meses la curva comienza a estabilizarse, indicando que la mayoría de los eventos ya ocurrieron. Las zonas grises alrededor de la curva representan el intervalo de confianza del 95%, mostrando la incertidumbre en la estimación de la supervivencia. Los signos “+” indican los casos censurados, es decir, pacientes que no presentaron recurrencia durante el seguimiento. En la tabla inferior puede verse cómo va disminuyendo la cantidad de pacientes en riesgo At Riska medida que pasa el tiempo, así como el número acumulado de eventos registrados
+
+## 2.4 Estimación de la supervivencia a x años.
+
+Al analizar datos de supervivencia es común que nos preguntemos, por ejemplo, ¿Cuál es la probabilidad de supervivencia después de 1 año de seguimiento? Esto lo calculamos a partir de usar la función survfit(), añadiendo el arguemento times.
+
+```{r}
+summary(survfit(Surv(Tiempo_hasta_recurrencia, evento) ~ 1, data = data_sangre), times = 12)
+```
+
+Se evaluó la probabilidad de no presentar recurrencia a los 12 meses de seguimiento. En ese momento quedaban 213 pacientes aún en riesgo (sin haber presentado el evento), y se habían registrado 25 eventos de recurrencia acumulados hasta ese punto. La probabilidad estimada de estar libre de recurrencia a los 12 meses es del 90.9% (valor de `survival = 0.909`). El intervalo de confianza del 95% para esta probabilidad va desde 87.6% a 94.4%, lo que significa que con un 95% de confianza
+
+```{r}
+survfit2(Surv(Tiempo_hasta_recurrencia, evento) ~ 1, data = data_sangre) |>
+  ggsurvfit() +
+  labs(
+    x = "Meses de seguimiento",
+    y = "Probabilidad de no presentar recurrencia"
+  ) +
+  add_confidence_interval() + 
+  add_risktable() +
+  add_quantile(x_value = 12, linewidth = 0.7)
+```
+
+Se observa la curva de supervivencia de Kaplan-Meier mostrando la probabilidad de no presentar recurrencia bioquímica a lo largo del seguimiento en meses. La probabilidad inicial es cercana a 1, y va descendiendo progresivamente a medida que ocurren los eventos de recurrencia. A los 12 meses, que está señalado con la línea vertical, la probabilidad de estar libre de recurrencia es de aproximadamente 91%, lo cual coincide con los cálculos previos. El área sombreada representa el intervalo de confianza del 95% en cada momento.
+
+### 2.5 Estimación mediana del tiempo de supervivencia
+
+Otro dato importante a estimar es la mediana de supervivencia. Típicamente, los datos de supervivencia no tendrán una distribución normal. Asi que, la mediana es preferida sobre la media aritmética.
+
+```{r}
+survfit(Surv(Tiempo_hasta_recurrencia, evento) ~ 1, data = data_sangre)
+```
+
+Se calculó la mediana del tiempo de supervivencia para los 315 pacientes incluidos en el análisis. Durante el seguimiento se registraron 53 eventos de recurrencia. Sin embargo, el resultado indica `NA` (no disponible) tanto para la mediana como para los intervalos de confianza. Esto ocurre porque no se llegó a observar el 50% de eventos en la muestra; es decir, más de la mitad de los pacientes no presentaron recurrencia durante el período de seguimiento. En estos casos, la mediana de supervivencia no puede calcularse porque la curva de supervivencia nunca alcanza el 50%, permaneciendo siempre por encima de ese valor.
+
+```{r}
+survfit2(Surv(Tiempo_hasta_recurrencia, evento) ~ 1, data = data_sangre) |>
+  ggsurvfit() +
+  labs(
+    x = "Meses de seguimiento",
+    y = "Probabilidad de no presentar recurrencia"
+  ) +
+  add_confidence_interval() + 
+  add_risktable() +
+  add_quantile(y_value = 0.5, linewidth = 0.7)
+```
+
+Se generó la curva de supervivencia de Kaplan-Meier para evaluar la probabilidad de no presentar recurrencia a lo largo del seguimiento. La probabilidad inicial es cercana a 1 y va disminuyendo progresivamente a medida que ocurren las recurrencias. Se intentó calcular el punto donde la probabilidad de supervivencia cae al 50% (mediana), pero como la curva nunca alcanza ese valor durante el período de seguimiento, no se observa ninguna línea vertical marcada en el gráfico.
+
+## ¿Cómo reportar?
+
+Usando el paquete gtsummary podemos generar una tabla con datos de la supervivencia al año.
+
+```{r}
+theme_gtsummary_language(language = "es")
+```
+
+```{r}
+survfit(Surv(Tiempo_hasta_recurrencia, evento) ~ 1, data = data_sangre) %>%
+  tbl_survfit(
+    times = 12,
+    label_header = "**Supervivencia a 12 meses (IC 95%)**"
+  )
+```
+
+La probabilidad de no presentar recurrencia a los 12 meses de seguimiento es del 91%. El intervalo de confianza del 95% para esta estimación va de 88% a 94%, lo que indica que existe un alto grado de certeza en este resultado. Esto confirma que la gran mayoría de los pacientes permanecen libres de recurrencia al cumplirse el primer año de seguimiento.
+
+```{r}
+survfit(Surv(Tiempo_hasta_recurrencia, evento) ~ 1, data = data_sangre) %>%
+  tbl_survfit(
+    probs = 0.5,
+    label_header = "**Mediana de supervivencia (IC 95%)**"
+  )
+```
+
+En este caso el código que muestras sirve para calcular la mediana de supervivencia (porque estás usando `probs = 0.5`), pero como vimos antes, en tu caso no se alcanza el 50% de recurrencias, por lo tanto el resultado será `NA`.
+
+## 1.1 Comparando tiempos de supervivencia entre dos grupos
+
+En el conjunto de datos `cancer_pulmon` se incluyen tanto hombres como mujeres. Un análisis de interés consiste en evaluar si los tiempos de supervivencia difieren significativamente entre ambos grupos. Para ello, se utiliza la función `survdiff()`, que permite aplicar la prueba de log-rank y estimar si existen diferencias en las curvas de supervivencia.
+
+```{r}
+survdiff(Surv(Tiempo_hasta_recurrencia, evento) ~ Grupo_edad_GR, data = data_sangre)
+```
+
+El resultado del test de log-rank muestra un estadístico Chi-cuadrado de 0, con 2 grados de libertad, y un valor de p de 1. Esto indica que no hay diferencias estadísticamente significativas en los tiempos de supervivencia entre los grupos de edad. En otras palabras, la edad agrupada según `Grupo_edad_GR` no parece influir en la probabilidad de presentar recurrencia en esta cohorte.
+
+```{r}
+survfit2(Surv(Tiempo_hasta_recurrencia, evento) ~ Grupo_edad_GR, data = data_sangre) |>
+  ggsurvfit() +
+  labs(
+    x = "Meses de seguimiento",
+    y = "Supervivencia libre de recurrencia"
+  ) +
+  add_confidence_interval() + 
+  add_risktable() +
+  add_pvalue(caption = "Log-rank p = {p.value}")
+```
+
+Se compararon las curvas de supervivencia libre de recurrencia entre los tres grupos de edad (Intermedio, Joven y Mayor). Visualmente, las curvas son muy similares entre los grupos, con diferencias mínimas a lo largo del seguimiento. La prueba de log-rank arrojó un p-valor mayor a 0.9, indicando que no hay diferencias estadísticamente significativas entre los grupos de edad en cuanto al tiempo libre de recurrencia. Es decir, la edad agrupada no parece influir en la probabilidad de recurrencia en esta cohorte. La tabla inferior muestra cuántos pacientes permanecen en riesgo en cada grupo con el paso del tiempo, y el número acumulado de eventos observados por grupo.
+
+# 3 El modelo de regresión de Cox
+
+La prueba de log-rank no ofrece una medida de efecto y solo permite evaluar una única variable independiente a la vez. Sin embargo, en investigación suele ser necesario cuantificar el tamaño del efecto de una o varias variables, e incluso realizar un análisis multivariable, aspecto que abordaremos en la siguiente sesión. Para este propósito, el modelo de regresión de Cox es una herramienta adecuada para analizar datos con desenlaces de supervivencia.
+
+En R, este modelo se puede ajustar utilizando la función `coxph()` del paquete survival.
+
+```{r}
+coxph(Surv(Tiempo_hasta_recurrencia, evento) ~ Grupo_edad_GR, data = data_sangre)
+```
+
+Se realizó un modelo de riesgos proporcionales de Cox para evaluar la asociación entre los grupos de edad (Grupo_edad_GR) y el riesgo de presentar recurrencia. El análisis incluyó 315 pacientes, de los cuales 53 presentaron el evento (recurrencia).
+
+Los coeficientes estimados para los grupos Joven y Mayor (comparados contra el grupo de referencia Intermedio) son negativos, lo que indicaría una tendencia a menor riesgo, pero los valores son muy pequeños. Los hazard ratios (exp(coef)) son cercanos a 1: para Joven es 0.96 y para Mayor es 0.93, lo que indica que el riesgo de recurrencia en estos grupos es prácticamente igual al grupo Intermedio. Los valores de p son muy altos (0.904 y 0.838), indicando que no hay diferencias estadísticamente significativas entre los grupos. El test global del modelo también confirma esto, con un p-valor de 0.9792.
+
+## 3.2 Interpretación y reporte
+
+Entre los resultados, el valor p indica que **no existe una asociación estadísticamente significativa** entre la covariable `Grupo_edad_GR` y la recurrencia bioquímica. Aunque se estimaron los coeficientes y sus intervalos de confianza al 95%, ambos en escala exponenciada (hazard ratio), estas medidas son las de interés y las que habitualmente se reportan en los informes científicos. En este caso, los hazard ratios fueron cercanos a 1, indicando que los distintos grupos de edad no se asocian a un mayor o menor riesgo de recurrencia. Estas tablas de resultados pueden obtenerse con la función `tbl_regression()` del paquete `gtsummary`, utilizando la opción `exponentiate = TRUE` para mostrar directamente la razón de riesgos (hazard ratio, HR) en lugar del logaritmo del riesgo.
+
+```{r}
+coxph(Surv(Tiempo_hasta_recurrencia, evento) ~ Grupo_edad_GR, data = data_sangre) %>%
+  tbl_regression(exp = TRUE)
+```
+
+Se evaluó el efecto de los grupos de edad sobre el riesgo de recurrencia mediante un modelo de Cox. El grupo de referencia fue el grupo Intermedio. Para el grupo Joven, el hazard ratio (HR) fue de 0.96, lo que indica que el riesgo de recurrencia es prácticamente igual al del grupo Intermedio. El intervalo de confianza al 95% va de 0.49 a 1.86, incluyendo el valor 1, por lo que la diferencia no es estadísticamente significativa (p \> 0.9). De manera similar, para el grupo Mayor el HR fue de 0.93, con un intervalo de confianza de 0.48 a 1.81 y un p-valor de 0.8, también sin significación estadística. En resumen, no se observan diferencias significativas en el riesgo de recurrencia entre los distintos grupos de edad.
+
+### 3.3 Reporte para multiple variables
+
+Es frecuente que en un estudio que incluya datos de supervivencia sea de interés evaluar multiples covariables. En R, usando la función `tbl_uvregression()` podemos generar modelos univariables simples para todas las covariables. A cambio, obtenemos la HR cruda para todas las covariables de interés.
+
+```{r}
+tabla_cox <- data_sangre |>
+  tbl_uvregression(
+    include = c(Grupo_edad_GR, Gleason_biopsia, Estadio_T),
+    y = Surv(Tiempo_hasta_recurrencia, evento),
+    method = coxph,
+    exponentiate = TRUE,
+    conf.level = 0.95,
+    hide_n = TRUE,
+    add_estimate_to_reference_rows = FALSE,
+    pvalue_fun = ~ style_pvalue(.x, digits = 3),
+    estimate_fun = ~ style_number(.x, digits = 2),
+    label = list(
+      Grupo_edad_GR ~ "Grupo de edad",
+      Gleason_biopsia ~ "Gleason en biopsia",
+      Estadio_T ~ "Estadio clínico T"
+    )
+  ) |>
+  bold_p(t = 0.05) |>
+  modify_header(estimate = "**HR no ajustado**", p.value = "**valor p**")
+```
+
+Imprimimos la tabla
+
+```{r}
+tabla_cox
+```
+
+Se evaluaron distintas variables clínicas como factores asociados al riesgo de recurrencia bioquímica.
+
+Para el grupo de edad, los hazard ratios para los grupos Joven (HR = 0.96) y Mayor (HR = 0.93) en comparación al grupo Intermedio fueron cercanos a 1, sin significación estadística (p-valores \> 0.8), indicando que la edad agrupada no se asoció con mayor o menor riesgo de recurrencia.
+
+Respecto al Gleason en biopsia, se observó una fuerte asociación con el riesgo de recurrencia. En comparación con Gleason 0-6 (grupo de referencia), el grupo Gleason 7 presentó un HR de 3.84 (IC 95%: 1.96 a 7.50; p \< 0.001), y el grupo Gleason 8-10 mostró un HR de 13.92 (IC 95%: 6.61 a 29.32; p \< 0.001). Esto indica que a mayor puntuación de Gleason, el riesgo de recurrencia es significativamente más alto.
+
+Finalmente, en cuanto al estadio clínico T, el grupo T2b-T3 mostró un HR de 4.35 (IC 95%: 2.34 a 8.09; p \< 0.001) comparado al grupo T1-T2a, lo que indica también un riesgo significativamente mayor de recurrencia para los estadios más avanzados.
+
+En resumen, mientras que la edad no mostró asociación con el riesgo de recurrencia, tanto el puntaje de Gleason como el estadio clínico T fueron fuertes predictores de recurrencia bioquímica.

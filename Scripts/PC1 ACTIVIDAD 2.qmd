@@ -1,0 +1,280 @@
+---
+title: "Proyecto 02_PC1"
+format: html
+editor: visual
+---
+
+## Integrantes
+
+-Cayllahua Huarancca Mayrha
+
+-Degregori Hinojosa Alexandra
+
+-Loayza Quispe Leidy
+
+-Marroquin Ticona Dayana
+
+-Quispe Valencia Evelyn
+
+## INSTALACIÓN DE PAQUETES
+
+```{r}
+install.packages("tidyverse")
+install.packages("rio")
+install.packages("here")
+install.packages("janitor")
+install.packages("skimr")
+install.packages("visdat")
+install.packages("DataExplorer")
+```
+
+## CARGAR PAQUETES
+
+```{r}
+library(tidyverse)
+library(rio)
+library(here)
+library(janitor)
+library(skimr)
+library(visdat)
+library(DataExplorer)
+```
+
+## IMPORTANDO almac_sangre.csv usando el paquete rio
+
+```{r}
+almac_sangre = import (here("data", "almac_sangre.csv"))
+```
+
+### VISTAZO AL CONTENIDO
+
+### Cuantas variables y observaciones hay?
+
+```{r}
+dim(almac_sangre)
+```
+
+### Cuántos y que tipos de variables hay?
+
+```{r}
+str(almac_sangre)
+```
+
+### Una funcion similar
+
+```{r}
+dplyr::glimpse(almac_sangre)
+```
+
+## Visualicemos los estadísticos descriptivos y otros parámetros de exploración
+
+```{r}
+skimr::skim(almac_sangre)
+```
+
+#### RESUMENES POR VARIABLE
+
+```{r}
+summary(almac_sangre)
+```
+
+## Visualmente
+
+***Mediante view()***
+
+```{r}
+View(almac_sangre) 
+```
+
+***Mediante visdat()***
+
+```{r}
+visdat::vis_dat(almac_sangre)
+```
+
+***Mediante DataExplorer()***
+
+```{r}
+DataExplorer::create_report(almac_sangre)
+```
+
+# LIMPIEZA DE DATOS
+
+### PASO 01: Corregir los nombres de las variables
+
+```{r}
+almac_sangre_1 = clean_names(almac_sangre)
+```
+
+```{r}
+names(almac_sangre)
+```
+
+```{r}
+names(almac_sangre_1)
+```
+
+### Paso 02: Convertir celdas no asignado a NA
+
+```{r}
+almac_sangre_2 = mutate_if(almac_sangre_1, is.character, list(~na_if(.,"")))
+```
+
+#### *Cambio de (no asignado) a NA en gleason quirúrgico*
+
+```{r}
+almac_sangre_2 = mutate_if (almac_sangre_1, is.character, list(~na_if(.,"No asignado")))
+```
+
+### Paso 03: Eliminar Filas o columnas vacías
+
+```{r}
+almac_sangre_3 = remove_empty(almac_sangre_2, which = c("rows", "cols"))
+```
+
+### OPTIMIZANDO EL CÓDIGO
+
+#### *CORREGIR NOMBRE, CELDAS VACÍAS A NA Y ELIMINAR COLUMNAS O FILAS VACÍAS*
+
+```{r}
+almac_sangre_1 = almac_sangre |> clean_names() |>  mutate_if(is.character, list(~ na_if(., ""))) |> remove_empty(which = c("rows", "cols"))
+```
+
+```{r}
+dim(almac_sangre_2)
+```
+
+```{r}
+dim(almac_sangre_3)
+```
+
+-   ***Ambas permanecen igual debido a que no existen celdas vacías***
+
+## Paso 04: Corregir errores ortográficos o valores inválidos
+
+#### *Inspección tabular*
+
+```{r}
+almac_sangre_1 |> count(grupo_edad_gr) # Cambia de variable categórica
+```
+
+### ***Trasformar data.frame a as tibble***
+
+```{r}
+almac_sangre_2 = as_tibble(almac_sangre_1)
+```
+
+***CORREGIR ERRORES USANDO mutate() y case when()***
+
+-   ***Corregimos los valores nominales de grupo de edad***
+
+```{r}
+almac_sangre_3 <- almac_sangre_2 |>
+  mutate(grupo_edad_gr = case_when(
+    edad < 50 ~ "Joven",
+    edad >= 50 & edad < 70 ~ "Intermedio",
+    edad >= 70 ~ "Mayor",
+    TRUE ~ NA_character_))
+```
+
+-   ***Corregimos Gleason biopsia y quirúrgico***
+
+```{r}
+almac_sangre_3 <- almac_sangre_2 |>
+  mutate(
+    gleason_biopsia = str_replace_all(gleason_biopsia, regex("(?i)^gleason"), "gleason"),
+    gleason_quirurgico = str_replace_all(gleason_quirurgico, regex("(?i)^gleason"), "gleason"))
+
+```
+
+```{r}
+#Corregimos tiempo hasta recurrencia por tiempo de recurrencia
+almac_sangre_3 <- almac_sangre_3 %>%
+  rename(tiempo_de_recurrencia = tiempo_hasta_recurrencia)
+```
+
+```{r}
+{r} #Corregimos historia familiar por historial familiar
+ almac_sangre_3 <- almac_sangre_3 %>%   rename(historial_familiar = historia_familiar)
+```
+
+## **COLAPSAR UNA VARIABLE CATEGORICA EN MENOS NIVELES**
+
+***Un vistazo a la variable de interés***
+
+```{r}
+almac_sangre_3 |> count(grupo_edad_gr)
+```
+
+### ***COLAPSAR A 2 CATEGORIAS***
+
+```{r}
+almac_sangre_4 <- almac_sangre_3 |>
+  mutate(
+    gleason_biopsia = str_to_lower(gleason_biopsia),  # paso 1: pasar a minúsculas
+    gleason_biopsia = case_when(
+      gleason_biopsia %in% c("gleason 0-6", "gleason 7") ~ "gleason ≤7",
+      gleason_biopsia == "gleason 8-10" ~ "gleason ≥8",
+      TRUE ~ gleason_biopsia  ))
+```
+
+### *Comprobando el cambio*
+
+```{r}
+almac_sangre_4 |> count(gleason_biopsia)
+```
+
+### ***Colapsar variable gleason quirúrgico***
+
+```{r}
+almac_sangre_4 <- almac_sangre_4 |>
+  mutate(gleason_quirurgico = case_when(
+    gleason_quirurgico %in% c("gleason 0-6", "gleason 7") ~ "gleason ≤7",
+    TRUE ~ gleason_quirurgico))
+```
+
+***Comprobando el cambio***
+
+```{r}
+almac_sangre_4 |> count(gleason_quirurgico)
+```
+
+## **TRANSFORMAR UNA VARIABLE**
+
+### *Transformar a logaritmo*
+
+**Paso 01**
+
+```{r}
+summary(almac_sangre_4$edad_mediana_gr)
+```
+
+**Paso 02**
+
+```{r}
+hist(almac_sangre_4$edad_mediana_gr)
+```
+
+**Paso 03**
+
+```{r}
+almac_sangre_5 <- almac_sangre_4 |>     mutate(log_años_desde_dx = (log(edad_mediana_gr + 1)))
+```
+
+**Paso 04**
+
+```{r}
+almac_sangre_5 |>     ggplot(aes(x = log_años_desde_dx)) +   geom_histogram(bins = 10) +   labs(y = "Frecuencia", x = "log(edad_mediana_gr + 1)")
+```
+
+## ***TRANSFORMACIÓN A BINARIO***
+
+```{r}
+almac_sangre_6 = almac_sangre_5 |>   mutate(     edad = case_when(       edad_mediana_gr <  50 ~ "< 50",       edad_mediana_gr >= 50 ~ ">= 50")) |>   mutate(tiempo_desde_dx_c = factor(edad, levels = "< 50", ">= 50"))
+```
+
+#### ***TRANSFORMANDO VALORES PERDIDOS usando na.if()***
+
+```{r}
+almac_sangre_7 = almac_sangre_6 |>    mutate(edad_mediana_gr = na_if(edad_mediana_gr, -7)) 
+```

@@ -1,0 +1,231 @@
+---
+title: "PRACTICA_01"
+author: "Alexandra Degregori"
+format: html
+editor: visual
+---
+
+## **PRIMERA PRÁCTICA**
+
+**Integrantes**
+
+-   *Cayllahua Huarancca Mayrha*
+
+-   *Degregori Hinojosa Alexandra*
+
+-   *Loayza Quispe Leidy*
+
+-   *Marroquin Ticona Dayana*
+
+-   *Quispe Valencia Evelyn*
+
+## DATOS
+
+```{r}
+# Vector 1: ID de pacientes
+id <- 1:15
+
+# Vector 2: Nombres 
+nombres <- c("Ana", "Luis", "Carlos", "Marta", "Jorge", "Sofía", "Pedro", "Lucía", "Andrés", "Elena", "Raúl", "Camila", "Tomás", "Valeria", "Diego")
+
+# Vector 3: Edad
+edad <- c(34, 45, 29, 56, 40, 32, 60, 25, 38, 48, 51, 36, 28, 44, 39)
+
+# Vector 4: Estado del tratamiento (En tratamiento, Recuperado, Abandonado)
+estado_tratamiento <- c("En tratamiento", "Recuperado", "Abandonado", "En tratamiento", "Recuperado",
+                        "En tratamiento", "Recuperado", "Abandonado", "En tratamiento", "Recuperado",
+                        "Abandonado", "En tratamiento", "Recuperado", "En tratamiento", "Abandonado")
+
+# Vector 5: Resultado del examen de esputo (positivo: 1, negativo: 0)
+esputo <- c(1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1)
+
+# Crear el data frame
+pacientes <- data.frame(id, nombres, edad, estado_tratamiento, esputo)
+
+```
+
+## FUNCIONES EN R
+
+#### *FUNCIÓN SORT - sort (* )
+
+-   Es una función utilizada para ordenar los elementos de un objeto/vector de menor a mayor, para cuando se necesite organizar datos numéricos o de texto. Se puede utilizar para
+
+1.  Organizar datos para una mejor visualización.
+
+2.  Preparar datos antes de aplicar filtros o análisis estadísticos.
+
+3.  Encontrar rankings (por ejemplo: los alumnos con mayores calificaciones).
+
+```{r}
+# 01 Asignar valores a los objetos
+edades <- c(34, 45, 29, 56, 40, 32, 60, 25, 38, 48, 51, 36, 28, 44, 39)
+# 02 Ejecutar la función sort
+sort(edades)
+
+
+```
+
+#### *FUNCIÓN MÁXIMO Y MÍNIMO - máx ()/ min()*
+
+-   Es una función que proporciona el valor máximo y mínimo de las componentes de un vector numérico, de caracteres, factores, etc.
+
+    ```{r}
+    # Edad mínima
+    min(pacientes$edad)
+
+    # Edad máxima
+    max(pacientes$edad)
+
+    ```
+
+#### *FUNCIÓN GRÁFICO Circular - pie()*
+
+Es una función que permite realizar una representación visual de los datos, mostrando proporciones, porcentajes, en un gráfico circular
+
+***Paso 1***
+
+```{r}
+# Tabla de frecuencias
+estado_freq <- table(pacientes$estado_tratamiento)
+
+
+```
+
+**Paso 2**
+
+```{r}
+# Convertir a data frame
+estado_df <- as.data.frame(estado_freq)
+```
+
+**Paso 3**
+
+```{r}
+#Asignar colores a los valores
+colores <- c("green", "blue", "orange")
+
+
+```
+
+**Paso 4**
+
+```{r}
+pie(estado_freq,
+    labels = paste0(names(estado_freq), " (", estado_freq, ")"),
+    main = "Estado de Tratamiento de Pacientes con Tuberculosis",
+    col = colores)
+
+```
+
+## DESCARGA DE PAQUETES EN R
+
+Un paquete en R es un conjunto de herramientas (funciones, datos y documentación) desarrolladas y organizadas para ampliar las capacidades del entorno de programación R. Los paquetes permiten a los usuarios realizar tareas específicas de manera más eficiente y modular, sin tener que escribir todo el código desde cero. Cada paquete puede incluir funciones (que realizan cálculos, manipulaciones de datos o generan gráficos), datos (conjuntos de datos integrados para ejemplo o práctica) y documentación (para explicar cómo usar el paquete y sus funciones).
+
+### *PAQUETE GT SUMMARY*
+
+-   El paquete gtsummary en R se utiliza principalmente para generar tablas resumen elegantes y personalizables a partir de datos, específicos en contextos estadísticos y médicos. Es muy útil cuando se quiere:
+
+1.  Hacer análisis descriptivos.
+
+2.  Comparar variables entre grupos.
+
+3.  Crear tablas que resuman modelos estadísticos (como regresiones).
+
+4.  Exportar resultados listos para publicar (en Word, PDF, HTML).
+
+    **Paso 1**
+
+    ```{r}
+    #Instalar paquete
+    install.packages("gtsummary")
+
+    ```
+
+**Paso 2**
+
+```{r}
+#Activar el paquete
+ library(gtsummary)
+```
+
+**Paso 3**
+
+```{r}
+#Comprobar instalación
+"gtsummary" %in% rownames(installed.packages())
+
+
+```
+
+### *PAQUETE EPITOOLS*
+
+-   Este paquete se especializa en epidemiología. Fue diseñado para realizar análisis estadísticos comunes en salud pública y medicina, especialmente en estudios de cohorte, casos y controles, o brotes de enfermedades. Ayuda a calcular indicadores claves como:
+
+Odds Ratio (OR), Riesgo Relativo (RR), Tasas de incidencia, prevalencia,Tasa de letalidad
+
+Clave para
+
+1.  Informes de vigilancia epidemiológica
+
+2.  Análisis de ensayos clínicos
+
+3.  Evaluación de factores de riesgo
+
+4.  Evaluación de eficacia de intervenciones sanitarias
+
+5.  Proyectos de investigación en medicina, salud pública o infectología
+
+    **Paso 1**
+
+    ```{r}
+    #Instalar paquete
+    install.packages("epitools")
+
+    ```
+
+    **Paso 2**
+
+    ```{r}
+    #Activar paquete
+    library(epitools)
+    ```
+
+    **Paso 3**
+
+    ```{r}
+    #Comprobar instalación
+    "epitools" %in% rownames(installed.packages())
+    ```
+
+    ### *PAQUETE TABLEONE*
+
+-   Tiene como objetivo crear la "Tabla 1" de los estudios clínicos, que muestra las características basales de los grupos comparados.
+
+Entre sus usos se encuentran:
+
+1.  Descripción de características de los grupos en ensayos clínicos o estudios observacionales.
+
+2.  Comparación de variables como edad, sexo, comorbilidades, etc., entre grupos (p. ej. tratados vs no tratados).
+
+**Paso 1**
+
+```{r}
+#Instalar paquete
+install.packages("tableone")
+```
+
+**Paso 2**
+
+```{r}
+#Activar paquete
+library(epitools)
+
+```
+
+**Paso 3**
+
+```{r}
+#Comprobar instalación
+"tableone" %in% rownames(installed.packages())
+
+```

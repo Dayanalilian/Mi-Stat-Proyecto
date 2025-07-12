@@ -1,0 +1,80 @@
+---
+title: "ACTIVIDAD 02 PC2"
+format: html
+editor: visual
+---
+
+## INTEGRANTES
+
+-   Degregori Hinojosa Alexandra
+
+-   Cayllahua Huarancca Mayrha
+
+-   Loayza Quispe Leidy
+
+-   Marroquin Ticona Dayana
+
+-   Quispe Valencia Evelyn
+
+## **Cargamos los paquetes**
+
+```{r}
+library(rio)
+library(here)
+```
+
+### **Cargamos nuestro dataset**
+
+```{r}
+data_almac_sangre <- import(here("data", "almac_sangre.csv"))
+```
+
+# *1. Para datos continuos*
+
+***Las hipótesis de la prueba de Shapiro-Wilk***
+
+-   La hipótesis nula (H₀) establece que la muestra proviene de una distribución normal.
+
+-   La hipótesis alternativa (H₁) plantea que la muestra no proviene de una distribución normal.
+
+### ***Para la variable PSA_preoperatorio***
+
+Utilizamos esta variable continua que mide el PSA preoperatorio en (ng/mL)
+
+```{r}
+shapiro.test(data_almac_sangre$PSA_preoperatorio)
+```
+
+**Conclusiones:** Aplicando la prueba de Shapiro Wilk y con los datos obtenidos de p valor = 2.2e-16, representa un valor menor al stándar \< 0.05, por lo que se rechaza la hipótesis nula presentando una distribución no normal.
+
+### **Para la variable continua Volumen_prostata**
+
+```{r}
+shapiro.test(data_almac_sangre$Volumen_prostata)
+```
+
+***Conclusiones:*** *Aplicando la prueba de Shapiro Wilk y con los datos obtenidos de p valor=2.2e-16, la variable Volumen_prostata presentan un p valor menor al esperado \< 0.05, y* el estadístico W fue considerablemente menor que 1 (PSA_preoperatorio: W = 0.67965), lo que indica una fuerte desviación de la distribución normal, *por lo tanto se rechaza la hipotesis nula.*
+
+## ***2.- Para datos categóricos***
+
+El dataset essobre el estado de pacientes con cáncer de próstata. En esta muestra, el número de participantes con Recurrencia bioquímica es 54 de un total de 316.
+
+```{r}
+table(data_almac_sangre$Recurrencia_bioquimica)
+```
+
+Un estudio previo realizado España reportó una prevalencia de recidiva/recurrencia bioquímica del 26,6% (DOI: 10.1016/j.acuro.2015.07.006 / <https://www.elsevier.es/es-revista-actas-urologicas-espanolas-292-articulo-prediccion-recidiva-bioquimica-tras-prostatectomia-S0210480615001928>)
+
+Por lo cual, la prevalencia del estudio previo representa el valor esperado, mientras que la prevalencia observada en nuestra dataset representa el valor observado.
+
+```{r}
+chisq.test(x = c(54, 262), p = c(0.226, 0.774))
+```
+
+***Hipotesis:***
+
+-   **Hipótesis nula (H₀):** No existe una diferencia significativa entre la proporción observada y la esperada.
+
+-   **Hipótesis alternativa (H₁):** Existe una diferencia significativa entre la proporción observada y la esperada.
+
+    ***Conclusiones:*** Se evaluó la distribución de pacientes con recidiva (54 casos) y sin recidiva (262 casos) El valor de p obtenido fue 0.019, lo cual es menor a 0.05, indicando una diferencia estadísticamente significativa. Por lo tanto, se rechaza la hipótesis nula y se acepta la hipótesis alternativa, concluyendo que la proporción observada de recidiva difiere significativamente de lo esperado.
